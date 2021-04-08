@@ -26,7 +26,5 @@ func main() {
 		})
 	})
 
-	router.GET("/getuser/:username", controllers.GetUser)
-
 	router.Run()
 }

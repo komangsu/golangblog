@@ -1,6 +1,7 @@
 package models
 
 import (
+	"errors"
 	jwt "github.com/dgrijalva/jwt-go"
 	"golang.org/x/crypto/bcrypt"
 	"golangblog/database"
@@ -10,19 +11,27 @@ import (
 	"time"
 )
 
+var ErrMismatchedEmail = errors.New("Email already taken")
+
 type User struct {
-	ID              uint64    `json:"id"`
-	Username        string    `json:"username" binding:"required,min=3,max=100"`
-	Email           string    `json:"email" binding:"required,email"`
-	Password        string    `json:"password" binding:"required,min=6,max=100"`
-	ConfirmPassword string    `json:"confirm_password" binding:"required,eqfield=Password"`
-	CreatedAt       time.Time `json:"created_at"`
-	UpdatedAt       time.Time `json:"updated_at"`
+	ID        uint64    `json:"id"`
+	Username  string    `json:"username" binding:"required,min=3,max=100"`
+	Email     string    `json:"email" binding:"required,email"`
+	Password  string    `json:"password" binding:"required,min=6,max=100"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type LoginUser struct {
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=6,max=100"`
+}
+
+type RegisterUser struct {
+	Username        string `json:"username" binding:"required,min=3,max=100"`
+	Email           string `json:"email" binding:"required,email"`
+	Password        string `json:"password" binding:"required,min=6,max=100"`
+	ConfirmPassword string `json:"confirm_password" binding:"required,eqfield=Password"`
 }
 
 // Create token
@@ -68,7 +77,9 @@ func (u *User) Prepare() {
 }
 
 // Create user
-func (u *User) SaveUser() (*User, error) {
+func SaveUser(username, email, password string) (User, error) {
+	var u User
+
 	db := database.InitDB()
 	defer db.Close()
 
@@ -85,26 +96,9 @@ func (u *User) SaveUser() (*User, error) {
 		log.Fatal(hashErr)
 	}
 
-	queryErr := stmt.QueryRow(&u.Username, &u.Email, &u.Password).Scan(&u.ID)
+	queryErr := stmt.QueryRow(username, email, password).Scan(&u.ID)
 	if queryErr != nil {
 		panic(queryErr)
-	}
-
-	return u, nil
-}
-
-func GetUserByUsername(email string) (User, error) {
-	var u User
-
-	db := database.InitDB()
-	defer db.Close()
-
-	query := `SELECT id,username,email,password FROM users WHERE email=$1`
-
-	row := db.QueryRow(query, email)
-	errRow := row.Scan(&u.ID, &u.Username, &u.Email, &u.Password)
-	if errRow != nil {
-		log.Fatal("email not found")
 	}
 
 	return u, nil
@@ -122,7 +116,7 @@ func SignIn(email, password string) (User, error) {
 	row := db.QueryRow(query, email)
 	errRow := row.Scan(&user.ID, &user.Username, &user.Email, &user.Password)
 	if errRow != nil {
-		log.Fatal("user not found.")
+		log.Fatal(errRow)
 	}
 
 	// Check password
@@ -132,4 +126,22 @@ func SignIn(email, password string) (User, error) {
 	}
 
 	return user, nil
+}
+
+// check duplicate email
+func CheckDuplicateEmail(email string) (User, error) {
+	var u User
+
+	db := database.InitDB()
+	defer db.Close()
+
+	query := `SELECT email FROM users WHERE email = $1`
+
+	row := db.QueryRow(query, email)
+	errRow := row.Scan(&u.Email)
+	if errRow != nil {
+		log.Fatal(errRow)
+	}
+
+	return u, nil
 }
