@@ -22,9 +22,10 @@ func CreateUser(c *gin.Context) {
 	}
 
 	// check duplicate email
-	_, errEmail := models.CheckDuplicateEmail(payload.Email)
-	if errEmail != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": errEmail})
+	_, errMail := models.GetEmail(payload.Email)
+	if errMail != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"errors": errMail})
+		return
 	}
 
 	// insert user
@@ -32,7 +33,7 @@ func CreateUser(c *gin.Context) {
 
 	if userErr != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "failed to created user.",
+			"error": userErr,
 		})
 	}
 	c.JSON(http.StatusCreated, "successfully created user.")

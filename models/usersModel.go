@@ -128,8 +128,7 @@ func SignIn(email, password string) (User, error) {
 	return user, nil
 }
 
-// check duplicate email
-func CheckDuplicateEmail(email string) (User, error) {
+func GetEmail(email string) (User, error) {
 	var u User
 
 	db := database.InitDB()
@@ -141,6 +140,11 @@ func CheckDuplicateEmail(email string) (User, error) {
 	errRow := row.Scan(&u.Email)
 	if errRow != nil {
 		log.Fatal(errRow)
+	}
+
+	// check duplicate email
+	if u.Email == email {
+		log.Fatal(ErrMismatchedEmail)
 	}
 
 	return u, nil
