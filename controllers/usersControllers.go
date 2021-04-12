@@ -9,11 +9,7 @@ import (
 
 // Create user
 func CreateUser(c *gin.Context) {
-	var user models.User
 	var payload models.RegisterUser
-
-	// trimspace
-	user.Prepare()
 
 	// validation
 	if err := c.ShouldBindBodyWith(&payload, binding.JSON); err != nil {
@@ -22,20 +18,20 @@ func CreateUser(c *gin.Context) {
 	}
 
 	// check duplicate email
-	_, errMail := models.GetEmail(payload.Email)
-	if errMail != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"errors": errMail})
+	u, _ := models.GetEmail(payload.Email)
+	if u.Email != "" {
+		c.JSON(http.StatusForbidden, gin.H{"message": "Email is already taken!"})
 		return
 	}
 
 	// insert user
-	_, userErr := models.SaveUser(payload.Username, payload.Email, payload.Password)
+	userErr := models.SaveUser(payload)
 
 	if userErr != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": userErr,
-		})
+		c.JSON(http.StatusBadRequest, gin.H{"message": "failed to create user"})
+		return
 	}
+
 	c.JSON(http.StatusCreated, "successfully created user.")
 }
 
@@ -58,7 +54,7 @@ func LoginUser(c *gin.Context) {
 	// create access token
 	token, errToken := models.CreateToken(users.ID)
 	if errToken != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "There was an error authenticating."})
+		c.JSON(http.StatusBadRequest, gin.H{"message": "There was an error authenticating."})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"token": token})

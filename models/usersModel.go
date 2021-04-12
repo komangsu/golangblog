@@ -1,7 +1,6 @@
 package models
 
 import (
-	"errors"
 	jwt "github.com/dgrijalva/jwt-go"
 	"golang.org/x/crypto/bcrypt"
 	"golangblog/database"
@@ -10,8 +9,6 @@ import (
 	"strings"
 	"time"
 )
-
-var ErrMismatchedEmail = errors.New("Email already taken")
 
 type User struct {
 	ID        uint64    `json:"id"`
@@ -59,17 +56,6 @@ func CheckPassword(hashedPassword, password string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 }
 
-// hash user password
-func (u *User) BeforeSave() error {
-	hashedPassword, err := Hash(u.Password)
-	if err != nil {
-		return err
-	}
-	u.Password = string(hashedPassword)
-	return nil
-
-}
-
 // Prepare strips user input of any white spaces
 func (u *User) Prepare() {
 	u.Username = strings.TrimSpace(u.Username)
@@ -77,13 +63,12 @@ func (u *User) Prepare() {
 }
 
 // Create user
-func SaveUser(username, email, password string) (User, error) {
-	var u User
+func SaveUser(payload RegisterUser) error {
 
 	db := database.InitDB()
 	defer db.Close()
 
-	query := `INSERT INTO users(username,email,password) VALUES($1,$2,$3) RETURNING id`
+	query := `INSERT INTO users(username,email,password) VALUES($1,$2,$3)`
 
 	stmt, err := db.Prepare(query)
 	if err != nil {
@@ -91,17 +76,18 @@ func SaveUser(username, email, password string) (User, error) {
 	}
 
 	// hash password
-	hashErr := u.BeforeSave()
-	if hashErr != nil {
-		log.Fatal(hashErr)
+	hashedPassword, errHash := Hash(payload.Password)
+	if errHash != nil {
+		log.Fatal(errHash)
 	}
+	payload.Password = string(hashedPassword)
 
-	queryErr := stmt.QueryRow(username, email, password).Scan(&u.ID)
+	_, queryErr := stmt.Exec(payload.Username, payload.Email, payload.Password)
 	if queryErr != nil {
-		panic(queryErr)
+		log.Fatal(queryErr)
 	}
 
-	return u, nil
+	return nil
 }
 
 // Login User
@@ -121,7 +107,8 @@ func SignIn(email, password string) (User, error) {
 
 	// Check password
 	err := CheckPassword(user.Password, password)
-	if err != nil && err == bcrypt.ErrMismatchedHashAndPassword { // mismatch return when a password and hash do not match.
+	// mismatch return when a password and hash do not match.
+	if err != nil && err == bcrypt.ErrMismatchedHashAndPassword {
 		log.Fatal("Invalid login credentials")
 	}
 
@@ -140,11 +127,6 @@ func GetEmail(email string) (User, error) {
 	errRow := row.Scan(&u.Email)
 	if errRow != nil {
 		log.Fatal(errRow)
-	}
-
-	// check duplicate email
-	if u.Email == email {
-		log.Fatal(ErrMismatchedEmail)
 	}
 
 	return u, nil
