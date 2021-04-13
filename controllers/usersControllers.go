@@ -18,9 +18,9 @@ func CreateUser(c *gin.Context) {
 	}
 
 	// check duplicate email
-	u, _ := models.GetEmail(payload.Email)
-	if u.Email != "" {
-		c.JSON(http.StatusForbidden, gin.H{"message": "Email is already taken!"})
+	email := models.CheckEmailExists(payload.Email)
+	if email != 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Email already taken."})
 		return
 	}
 
@@ -28,11 +28,12 @@ func CreateUser(c *gin.Context) {
 	userErr := models.SaveUser(payload)
 
 	if userErr != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "failed to create user"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed creating account"})
 		return
 	}
 
-	c.JSON(http.StatusCreated, "successfully created user.")
+	c.JSON(http.StatusCreated, gin.H{"message": "Successfully created user."})
+
 }
 
 // Login User
@@ -45,9 +46,16 @@ func LoginUser(c *gin.Context) {
 		return
 	}
 
-	users, errUser := models.SignIn(payload.Email, payload.Password)
+	// check email
+	email := models.CheckEmailExists(payload.Email)
+	if email == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "User not found."})
+		return
+	}
+
+	users, errUser := models.VerifyLogin(payload.Email, payload.Password)
 	if errUser != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": errUser.Error()})
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "invalid login credentials"})
 		return
 	}
 

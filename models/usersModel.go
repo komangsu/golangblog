@@ -42,10 +42,7 @@ func CreateToken(user_id uint64) (string, error) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_SECRET_KEY")))
-	if err != nil {
-		return "", err
-	}
-	return tokenString, nil
+	return tokenString, err
 }
 
 func Hash(password string) ([]byte, error) {
@@ -68,7 +65,7 @@ func SaveUser(payload RegisterUser) error {
 	db := database.InitDB()
 	defer db.Close()
 
-	query := `INSERT INTO users(username,email,password) VALUES($1,$2,$3)`
+	query := `insert into users(username,email,password) values($1,$2,$3)`
 
 	stmt, err := db.Prepare(query)
 	if err != nil {
@@ -90,44 +87,33 @@ func SaveUser(payload RegisterUser) error {
 	return nil
 }
 
-// Login User
-func SignIn(email, password string) (User, error) {
+func VerifyLogin(email, password string) (User, error) {
 	var user User
 
 	db := database.InitDB()
 	defer db.Close()
 
-	query := `SELECT id,username,email,password FROM users WHERE email = $1`
+	query := `select id,email,password from users where email = $1`
 
 	row := db.QueryRow(query, email)
-	errRow := row.Scan(&user.ID, &user.Username, &user.Email, &user.Password)
-	if errRow != nil {
-		log.Fatal(errRow)
-	}
+	row.Scan(&user.ID, &user.Email, &user.Password)
 
 	// Check password
 	err := CheckPassword(user.Password, password)
-	// mismatch return when a password and hash do not match.
-	if err != nil && err == bcrypt.ErrMismatchedHashAndPassword {
-		log.Fatal("Invalid login credentials")
-	}
 
-	return user, nil
+	return user, err
 }
 
-func GetEmail(email string) (User, error) {
-	var u User
+func CheckEmailExists(email string) int {
+
+	var counter int
 
 	db := database.InitDB()
 	defer db.Close()
 
-	query := `SELECT email FROM users WHERE email = $1`
+	query := `select count(id) from users where email = $1`
 
-	row := db.QueryRow(query, email)
-	errRow := row.Scan(&u.Email)
-	if errRow != nil {
-		log.Fatal(errRow)
-	}
+	db.QueryRow(query, email).Scan(&counter)
 
-	return u, nil
+	return counter
 }
