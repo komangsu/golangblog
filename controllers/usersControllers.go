@@ -3,9 +3,15 @@ package controllers
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
+	"golangblog/libs"
 	"golangblog/models"
 	"net/http"
 )
+
+type link struct {
+	Name string
+	URL  string
+}
 
 // Create user
 func CreateUser(c *gin.Context) {
@@ -32,7 +38,15 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "Successfully created user."})
+	// send email after create account
+	templateData := link{
+		Name: "Potter",
+		URL:  "https://i.giphy.com/media/pI2paNxecnUNW/giphy.webp",
+	}
+
+	libs.SendEmailVerification(payload.Email, templateData)
+
+	c.JSON(http.StatusCreated, gin.H{"message": "Success, check your email to verification"})
 
 }
 
