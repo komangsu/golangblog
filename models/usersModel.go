@@ -60,7 +60,8 @@ func (u *User) Prepare() {
 }
 
 // Create user
-func SaveUser(payload RegisterUser) error {
+func SaveUser(payload RegisterUser) (User, error) {
+	var u User
 
 	db := database.InitDB()
 	defer db.Close()
@@ -83,8 +84,8 @@ func SaveUser(payload RegisterUser) error {
 	if queryErr != nil {
 		log.Fatal(queryErr)
 	}
-
-	return nil
+	u.Username = payload.Username
+	return u, nil
 }
 
 func VerifyLogin(email, password string) (User, error) {

@@ -62,7 +62,7 @@ func SendEmail(to string, subject string, data interface{}, templateFile string)
 func SendEmailVerification(to string, data interface{}) {
 	var err error
 
-	template := "golangblog/templates/email/email-confirm.html"
+	template := "./templates/email/email-confirm.html"
 	subject := "test email verification"
 
 	err = SendEmail(to, subject, data, template)

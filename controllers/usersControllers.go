@@ -6,6 +6,7 @@ import (
 	"golangblog/libs"
 	"golangblog/models"
 	"net/http"
+	"runtime"
 )
 
 type link struct {
@@ -31,7 +32,7 @@ func CreateUser(c *gin.Context) {
 	}
 
 	// insert user
-	userErr := models.SaveUser(payload)
+	u, userErr := models.SaveUser(payload)
 
 	if userErr != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed creating account"})
@@ -40,11 +41,12 @@ func CreateUser(c *gin.Context) {
 
 	// send email after create account
 	templateData := link{
-		Name: "Potter",
+		Name: u.Username,
 		URL:  "https://i.giphy.com/media/pI2paNxecnUNW/giphy.webp",
 	}
 
-	libs.SendEmailVerification(payload.Email, templateData)
+	runtime.GOMAXPROCS(1)
+	go libs.SendEmailVerification(payload.Email, templateData)
 
 	c.JSON(http.StatusCreated, gin.H{"message": "Success, check your email to verification"})
 
