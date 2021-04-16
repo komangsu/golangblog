@@ -10,7 +10,6 @@ CREATE TABLE IF NOT EXISTS users(
 CREATE TABLE IF NOT EXISTS confirmation_users(
 	id serial PRIMARY KEY,
 	activated BOOLEAN DEFAULT FALSE,
-	resend_expired INT NULL,
 	user_id INT NOT NULL,
 	CONSTRAINT fk_users
 		FOREIGN KEY(user_id)

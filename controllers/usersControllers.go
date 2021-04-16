@@ -3,20 +3,14 @@ package controllers
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
-	"golangblog/libs"
 	"golangblog/models"
+	"golangblog/schemas"
 	"net/http"
-	"runtime"
 )
-
-type link struct {
-	Name string
-	URL  string
-}
 
 // Create user
 func CreateUser(c *gin.Context) {
-	var payload models.RegisterUser
+	var payload schemas.RegisterUser
 
 	// validation
 	if err := c.ShouldBindBodyWith(&payload, binding.JSON); err != nil {
@@ -39,14 +33,14 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	// send email after create account
-	templateData := link{
-		Name: u.Username,
-		URL:  "https://i.giphy.com/media/pI2paNxecnUNW/giphy.webp",
+	confErr := models.SaveConfirmation(u.ID)
+	if confErr != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"message": "cannot insert confirmation id"})
+		return
 	}
 
-	runtime.GOMAXPROCS(1)
-	go libs.SendEmailVerification(payload.Email, templateData)
+	// send email after create account
+	models.SendEmailConfirm(u.Username, payload.Email)
 
 	c.JSON(http.StatusCreated, gin.H{"message": "Success, check your email to verification"})
 

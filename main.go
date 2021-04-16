@@ -20,7 +20,7 @@ func main() {
 		router.POST("/login", controllers.LoginUser)
 
 	}
-	router.GET("/", func(c *gin.Context) {
+	router.GET("/test", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "anjeng",
 		})

@@ -4,6 +4,7 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 	"golang.org/x/crypto/bcrypt"
 	"golangblog/database"
+	"golangblog/schemas"
 	"log"
 	"os"
 	"strings"
@@ -22,13 +23,6 @@ type User struct {
 type LoginUser struct {
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=6,max=100"`
-}
-
-type RegisterUser struct {
-	Username        string `json:"username" binding:"required,min=3,max=100"`
-	Email           string `json:"email" binding:"required,email"`
-	Password        string `json:"password" binding:"required,min=6,max=100"`
-	ConfirmPassword string `json:"confirm_password" binding:"required,eqfield=Password"`
 }
 
 // Create token
@@ -60,13 +54,13 @@ func (u *User) Prepare() {
 }
 
 // Create user
-func SaveUser(payload RegisterUser) (User, error) {
+func SaveUser(payload schemas.RegisterUser) (User, error) {
 	var u User
 
 	db := database.InitDB()
 	defer db.Close()
 
-	query := `insert into users(username,email,password) values($1,$2,$3)`
+	query := `insert into users(username,email,password) values($1,$2,$3) returning id`
 
 	stmt, err := db.Prepare(query)
 	if err != nil {
@@ -80,11 +74,15 @@ func SaveUser(payload RegisterUser) (User, error) {
 	}
 	payload.Password = string(hashedPassword)
 
-	_, queryErr := stmt.Exec(payload.Username, payload.Email, payload.Password)
+	var lastId uint64
+
+	queryErr := stmt.QueryRow(payload.Username, payload.Email, payload.Password).Scan(&lastId)
 	if queryErr != nil {
 		log.Fatal(queryErr)
 	}
 	u.Username = payload.Username
+	u.ID = lastId
+
 	return u, nil
 }
 
