@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"golangblog/models"
@@ -33,16 +34,22 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	confErr := models.SaveConfirmation(u.ID)
-	if confErr != nil {
-		c.JSON(http.StatusBadGateway, gin.H{"message": "cannot insert confirmation id"})
-		return
-	}
+	var conf models.Confirmation
+	conf.User_id = u.ID
+
+	fmt.Println(conf.User_id)
+
+	confErr := models.SaveConfirmation(conf.User_id)
+	// if confErr != nil {
+	// 	c.JSON(http.StatusBadGateway, gin.H{"message": "cannot insert confirmation id"})
+	// 	return
+	// }
+	fmt.Println(confErr)
 
 	// send email after create account
-	models.SendEmailConfirm(u.Username, payload.Email)
+	// models.SendEmailConfirm(u.Username, payload.Email)
 
-	c.JSON(http.StatusCreated, gin.H{"message": "Success, check your email to verification"})
+	// c.JSON(http.StatusCreated, gin.H{"message": "Success, check your email to verification"})
 
 }
 

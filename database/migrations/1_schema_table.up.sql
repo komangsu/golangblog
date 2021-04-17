@@ -15,4 +15,5 @@ CREATE TABLE IF NOT EXISTS confirmation_users(
 		FOREIGN KEY(user_id)
 			REFERENCES users(id)
 			ON DELETE CASCADE
+			ON UPDATE CASCADE
 );

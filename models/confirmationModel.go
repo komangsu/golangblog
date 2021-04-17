@@ -4,7 +4,6 @@ import (
 	// "github.com/google/uuid"
 	"golangblog/database"
 	"golangblog/libs"
-	"log"
 	"os"
 	"runtime"
 )
@@ -40,15 +39,8 @@ func SaveConfirmation(user_id uint64) error {
 
 	query := `insert into confirmation_users(user_id) values($1)`
 
-	stmt, err := db.Prepare(query)
-	if err != nil {
-		panic(err)
-	}
+	stmt, _ := db.Prepare(query)
 
-	queryErr := stmt.QueryRow(user_id)
-	if queryErr != nil {
-		log.Fatal(queryErr)
-	}
-
+	stmt.QueryRow(user_id)
 	return nil
 }
