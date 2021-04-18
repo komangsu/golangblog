@@ -116,3 +116,17 @@ func CheckEmailExists(email string) int {
 
 	return counter
 }
+
+func FindUserByEmail(email string) (uint64, error) {
+	var u User
+
+	db := database.InitDB()
+	defer db.Close()
+
+	query := `select id from users where email = $1`
+	db.QueryRow(query, email)
+
+	id := u.ID
+
+	return id, nil
+}

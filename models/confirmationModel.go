@@ -44,3 +44,17 @@ func SaveConfirmation(user_id uint64) error {
 	stmt.QueryRow(user_id)
 	return nil
 }
+
+func FindConfirmation(user_id uint64) (Confirmation, error) {
+	var confirmation Confirmation
+
+	db := database.InitDB()
+	defer db.Close()
+
+	query := `select activated from confirmation_users where user_id = $1`
+
+	row := db.QueryRow(query, user_id)
+	row.Scan(&confirmation.Activated)
+
+	return confirmation, nil
+}

@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"golangblog/models"
@@ -34,17 +33,11 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	var conf models.Confirmation
-	conf.User_id = u.ID
-
-	fmt.Println(conf.User_id)
-
-	confErr := models.SaveConfirmation(conf.User_id)
-	// if confErr != nil {
-	// 	c.JSON(http.StatusBadGateway, gin.H{"message": "cannot insert confirmation id"})
-	// 	return
-	// }
-	fmt.Println(confErr)
+	confErr := models.SaveConfirmation(u.ID)
+	if confErr != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"message": "cannot insert confirmation id"})
+		return
+	}
 
 	// send email after create account
 	// models.SendEmailConfirm(u.Username, payload.Email)
@@ -71,6 +64,8 @@ func LoginUser(c *gin.Context) {
 	}
 
 	users, errUser := models.VerifyLogin(payload.Email, payload.Password)
+	confirmation, _ := models.FindConfirmation(users.ID)
+
 	if errUser != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "invalid login credentials"})
 		return
@@ -82,5 +77,12 @@ func LoginUser(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "There was an error authenticating."})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"token": token})
+
+	if !confirmation.Activated {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "Account is not actived, check your email to verified",
+		})
+	} else {
+		c.JSON(http.StatusOK, gin.H{"token": token})
+	}
 }
