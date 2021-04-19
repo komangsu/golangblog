@@ -3,10 +3,18 @@ package controllers
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
+	"golangblog/libs"
 	"golangblog/models"
 	"golangblog/schemas"
 	"net/http"
+	"os"
+	"runtime"
 )
+
+type bodylink struct {
+	Name string
+	URL  string
+}
 
 // Create user
 func CreateUser(c *gin.Context) {
@@ -40,15 +48,23 @@ func CreateUser(c *gin.Context) {
 	}
 
 	// send email after create account
-	// models.SendEmailConfirm(u.Username, payload.Email)
+	token, _ := models.CreateToken(u.Email)
+	link := os.Getenv("APP_URL") + "/confirm-email?token=" + token
+	templateData := bodylink{
+		Name: u.Username,
+		URL:  link,
+	}
 
-	// c.JSON(http.StatusCreated, gin.H{"message": "Success, check your email to verification"})
+	runtime.GOMAXPROCS(1)
+	go libs.SendEmailVerification(payload.Email, templateData)
+
+	c.JSON(http.StatusCreated, gin.H{"message": "Success, check your email to verification"})
 
 }
 
 // Login User
 func LoginUser(c *gin.Context) {
-	var payload models.LoginUser
+	var payload schemas.LoginUser
 
 	// validation
 	if err := c.ShouldBindBodyWith(&payload, binding.JSON); err != nil {
@@ -72,7 +88,7 @@ func LoginUser(c *gin.Context) {
 	}
 
 	// create access token
-	token, errToken := models.CreateToken(users.ID)
+	token, errToken := models.CreateToken(users.Email)
 	if errToken != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "There was an error authenticating."})
 		return
@@ -85,4 +101,18 @@ func LoginUser(c *gin.Context) {
 	} else {
 		c.JSON(http.StatusOK, gin.H{"token": token})
 	}
+}
+
+func VerifyAccount(c *gin.Context) {
+	verifyToken, _ := c.GetQuery("token")
+
+	userId, _ := models.DecodeAuthToken(verifyToken)
+
+	err := models.VerifyAccountModel(userId)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to verifying your account,try again"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Account verified, log in"})
 }

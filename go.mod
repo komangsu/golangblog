@@ -5,6 +5,7 @@ go 1.15
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/gin-gonic/gin v1.6.3
+	github.com/go-redis/redis/v8 v8.8.2
 	github.com/gobeam/custom-validator v0.0.0-20200426153538-8303d15a00d5
 	github.com/google/uuid v1.2.0
 	github.com/lib/pq v1.10.0

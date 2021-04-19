@@ -39,7 +39,7 @@ func SendEmail(to string, subject string, data interface{}, templateFile string)
 
 	result, _ := ParseTemplate(templateFile, data)
 	m := gomail.NewMessage()
-	m.SetHeader("From", "golang blog <golang@blog.com>")
+	m.SetHeader("From", "Email Verification <golang@blog.com>")
 	m.SetHeader("To", to)
 	m.SetHeader("Subject", subject)
 	m.SetBody("text/html", result)

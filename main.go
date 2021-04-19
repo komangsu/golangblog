@@ -18,11 +18,12 @@ func main() {
 	{
 		router.POST("/users", controllers.CreateUser)
 		router.POST("/login", controllers.LoginUser)
-
 	}
+	router.GET("/confirm-email", controllers.VerifyAccount)
+
 	router.GET("/test", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
-			"message": "anjeng",
+			"message": "golangblog",
 		})
 	})
 
