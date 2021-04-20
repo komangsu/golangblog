@@ -48,7 +48,7 @@ func CreateUser(c *gin.Context) {
 	}
 
 	// send email after create account
-	token, _ := models.CreateToken(u.Email)
+	token, _ := models.CreateAuthToken(u.Email)
 	link := os.Getenv("APP_URL") + "/confirm-email?token=" + token
 	templateData := bodylink{
 		Name: u.Username,
@@ -88,7 +88,7 @@ func LoginUser(c *gin.Context) {
 	}
 
 	// create access token
-	token, errToken := models.CreateToken(users.Email)
+	token, errToken := models.CreateAuthToken(users.Email)
 	if errToken != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "There was an error authenticating."})
 		return

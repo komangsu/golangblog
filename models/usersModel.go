@@ -27,13 +27,8 @@ type Claims struct {
 	jwt.StandardClaims
 }
 
-type TokenDetails struct {
-	AccessToken  string
-	RefreshToken string
-}
-
 // Create token
-func CreateToken(user_id string) (string, error) {
+func CreateAuthToken(user_id string) (string, error) {
 
 	expiredTime := time.Now().Add(time.Minute * 15).Unix() // token expired after 15 minutes
 	claims := &Claims{
