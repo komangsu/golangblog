@@ -2,16 +2,22 @@ package models
 
 import (
 	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"golangblog/database"
 	"golangblog/schemas"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
 
-var jwtKey = []byte(os.Getenv("JWT_SECRET_KEY"))
+var (
+	jwtKey         = []byte(os.Getenv("JWT_SECRET_KEY"))
+	access_secret  = []byte(os.Getenv("ACCESS_SECRET"))
+	refresh_secret = []byte(os.Getenv("REFRESH_SECRET"))
+)
 
 type User struct {
 	ID        uint64    `json:"id"`
@@ -25,6 +31,15 @@ type User struct {
 type Claims struct {
 	UserId string `json:"email"`
 	jwt.StandardClaims
+}
+
+type TokenDetails struct {
+	AccessToken  string
+	RefreshToken string
+	AccessUuid   string
+	RefreshUuid  string
+	AtExpires    int64
+	RtExpires    int64
 }
 
 // Create token
@@ -44,6 +59,61 @@ func CreateAuthToken(user_id string) (string, error) {
 	tokenString, err := token.SignedString(jwtKey)
 
 	return tokenString, err
+}
+func CreateToken(user_id uint64) (*TokenDetails, error) {
+	td := &TokenDetails{}
+
+	td.AtExpires = time.Now().Add(time.Minute * 15).Unix() // set token expires after 15 minutes
+	td.AccessUuid = uuid.New().String()
+
+	td.RtExpires = time.Now().Add(time.Hour * 24 * 7).Unix() // set token expires after 7 days
+	td.RefreshUuid = uuid.New().String()
+
+	var err error
+	// access token
+	atClaims := jwt.MapClaims{}
+	atClaims["authorized"] = true
+	atClaims["access_uuid"] = td.AccessUuid
+	atClaims["user_id"] = user_id
+	atClaims["exp"] = td.AtExpires
+	at := jwt.NewWithClaims(jwt.SigningMethodHS256, atClaims)
+	td.AccessToken, err = at.SignedString(access_secret)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// refresh token
+	rtClaims := jwt.MapClaims{}
+	rtClaims["refresh_uuid"] = td.RefreshUuid
+	rtClaims["user_id"] = user_id
+	rtClaims["exp"] = td.RtExpires
+	rt := jwt.NewWithClaims(jwt.SigningMethodHS256, rtClaims)
+	td.RefreshToken, err = rt.SignedString(refresh_secret)
+	if err != nil {
+		return nil, err
+	}
+
+	return td, nil
+}
+
+func CreateAuth(user_id uint64, td *TokenDetails) error {
+	at := time.Unix(td.AtExpires, 0)
+	rt := time.Unix(td.RtExpires, 0)
+	now := time.Now()
+
+	errAccess := Client.c.Set(database.Ctx, td.AccessUuid, strconv.Itoa(int(user_id)), at.Sub(now)).Err()
+	if errAccess != nil {
+		return errAccess
+	}
+
+	errRefresh := Client.c.Set(database.Ctx, td.RefreshUuid, strconv.Itoa(int(user_id)), rt.Sub(now)).Err()
+	if errRefresh != nil {
+		return errRefresh
+
+	}
+
+	return nil
 }
 
 func DecodeAuthToken(tokenStr string) (string, error) {
