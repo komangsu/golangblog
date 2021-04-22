@@ -3,6 +3,7 @@ package controllers
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
+	"golangblog/database"
 	"golangblog/libs"
 	"golangblog/models"
 	"golangblog/schemas"
@@ -88,10 +89,15 @@ func LoginUser(c *gin.Context) {
 	}
 
 	// create access token
-	token, errToken := models.CreateAuthToken(users.Email)
+	token, errToken := database.CreateToken(users.ID)
 	if errToken != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "There was an error authenticating."})
 		return
+	}
+
+	tokens := map[string]string{
+		"access_token":  token.AccessToken,
+		"refresh_token": token.RefreshToken,
 	}
 
 	if !confirmation.Activated {
@@ -99,7 +105,7 @@ func LoginUser(c *gin.Context) {
 			"message": "Account is not actived, check your email to verified",
 		})
 	} else {
-		c.JSON(http.StatusOK, gin.H{"token": token})
+		c.JSON(http.StatusOK, tokens)
 	}
 }
 
