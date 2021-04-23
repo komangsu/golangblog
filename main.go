@@ -21,6 +21,8 @@ func main() {
 	}
 	router.GET("/confirm-email", controllers.VerifyAccount)
 
+	router.POST("/article/create", controllers.CreateArticle)
+
 	router.GET("/test", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "golangblog",

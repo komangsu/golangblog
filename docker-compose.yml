@@ -5,6 +5,8 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: always
+    environment:
+        - REDIS_DB_HOST=redis-server
     volumes:
       - ".:/api"
     ports:
@@ -28,3 +30,9 @@ services:
     environment:
       - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL}
       - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD}
+  redis-server:
+    image: "redis"
+    sysctls:
+      - net.core.somaxconn=511
+
+
