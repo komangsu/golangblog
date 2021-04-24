@@ -13,6 +13,7 @@ func main() {
 
 	// connect to database
 	database.InitDB()
+	database.InitRedis()
 
 	router.Use(validator.Errors())
 	{

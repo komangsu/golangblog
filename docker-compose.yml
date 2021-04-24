@@ -5,8 +5,6 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: always
-    environment:
-        - REDIS_DB_HOST=redis-server
     volumes:
       - ".:/api"
     ports:
@@ -14,6 +12,7 @@ services:
     depends_on: 
       - postgres
       - pgadmin4
+      - redis-server
   postgres:
     image: "postgres"
     restart: always

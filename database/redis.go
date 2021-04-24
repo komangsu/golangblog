@@ -6,6 +6,7 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -19,6 +20,8 @@ var (
 
 	access_secret  = []byte(os.Getenv("ACCESS_SECRET"))
 	refresh_secret = []byte(os.Getenv("REFRESH_SECRET"))
+
+	redisAddr = os.Getenv("REDIS_DB_HOST") + ":6379"
 )
 
 type redisClient struct {
@@ -42,14 +45,14 @@ type AccessDetails struct {
 func InitRedis() *redisClient {
 	// initializing redis
 	c := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
+		Addr:     redisAddr,
 		Password: "", // no password set
 		DB:       0,  // use default DB
 	})
 
 	_, err := c.Ping(ctx).Result()
 	if err != nil {
-		panic(err)
+		log.Fatal("Failed to connect to redis")
 	}
 
 	client.c = c
@@ -106,7 +109,6 @@ func CreateAuth(user_id uint64, td *TokenDetails) error {
 	errRefresh := client.c.Set(ctx, td.RefreshUuid, strconv.Itoa(int(user_id)), rt.Sub(now)).Err()
 	if errRefresh != nil {
 		return errRefresh
-
 	}
 
 	return nil
