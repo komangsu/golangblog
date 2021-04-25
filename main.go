@@ -5,6 +5,7 @@ import (
 	"github.com/gobeam/custom-validator"
 	"golangblog/controllers"
 	"golangblog/database"
+	"golangblog/middleware"
 	"net/http"
 )
 
@@ -21,6 +22,7 @@ func main() {
 		router.POST("/login", controllers.LoginUser)
 	}
 	router.GET("/confirm-email", controllers.VerifyAccount)
+	router.DELETE("/access-token-revoke", middleware.TokenAuthMiddleware(), controllers.RevokeToken)
 
 	router.POST("/article/create", controllers.CreateArticle)
 

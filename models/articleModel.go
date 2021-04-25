@@ -19,11 +19,11 @@ func CreateArticle(title, content string, authorid uint64) error {
 	db := database.InitDB()
 	defer db.Close()
 
-	query := `insert into articles(title,content,author_id) values($1,$2)`
+	query := `insert into articles(title,content,author_id) values($1,$2,$3)`
 
 	stmt, err := db.Prepare(query)
 	if err != nil {
-		return err
+		panic(err)
 	}
 
 	stmt.QueryRow(title, content, authorid)

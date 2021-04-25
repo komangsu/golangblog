@@ -95,6 +95,11 @@ func LoginUser(c *gin.Context) {
 		return
 	}
 
+	setErr := database.CreateAuth(users.ID, token)
+	if setErr != nil {
+		c.JSON(http.StatusUnprocessableEntity, setErr.Error())
+	}
+
 	tokens := map[string]string{
 		"access_token":  token.AccessToken,
 		"refresh_token": token.RefreshToken,
@@ -121,4 +126,19 @@ func VerifyAccount(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Account verified, log in"})
+}
+
+func RevokeToken(c *gin.Context) {
+	detail, err := database.ExtractTokenMetadata(c.Request)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	deleted, delErr := database.DeleteAuth(detail.AccessUuid)
+	if delErr != nil || deleted == 0 {
+		c.JSON(http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+	c.JSON(http.StatusOK, "Access token revoked")
 }

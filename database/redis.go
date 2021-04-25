@@ -72,8 +72,8 @@ func CreateToken(user_id uint64) (*TokenDetails, error) {
 	// access token
 	atClaims := jwt.MapClaims{}
 	atClaims["authorized"] = true
-	atClaims["access_uuid"] = td.AccessUuid
-	atClaims["user_id"] = user_id
+	atClaims["jti"] = td.AccessUuid
+	atClaims["identity"] = user_id
 	atClaims["exp"] = td.AtExpires
 	at := jwt.NewWithClaims(jwt.SigningMethodHS256, atClaims)
 	td.AccessToken, err = at.SignedString(access_secret)
@@ -84,8 +84,8 @@ func CreateToken(user_id uint64) (*TokenDetails, error) {
 
 	// refresh token
 	rtClaims := jwt.MapClaims{}
-	rtClaims["refresh_uuid"] = td.RefreshUuid
-	rtClaims["user_id"] = user_id
+	rtClaims["jti"] = td.RefreshUuid
+	rtClaims["identity"] = user_id
 	rtClaims["exp"] = td.RtExpires
 	rt := jwt.NewWithClaims(jwt.SigningMethodHS256, rtClaims)
 	td.RefreshToken, err = rt.SignedString(refresh_secret)
@@ -127,7 +127,7 @@ func VerifyToken(r *http.Request) (*jwt.Token, error) {
 	tokenString := ExtractToken(r)
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("Unexpected signing methof: %v", token.Header["alg"])
+			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
 		}
 		return access_secret, nil
 	})
@@ -158,12 +158,12 @@ func ExtractTokenMetadata(r *http.Request) (*AccessDetails, error) {
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if ok && token.Valid {
-		accessUuid, ok := claims["access_uuid"].(string)
+		accessUuid, ok := claims["jti"].(string)
 		if !ok {
 			return nil, err
 		}
 
-		userId, err := strconv.ParseUint(fmt.Sprintf("%.f", claims["user_id"]), 10, 64)
+		userId, err := strconv.ParseUint(fmt.Sprintf("%.f", claims["identity"]), 10, 64)
 		if err != nil {
 			return nil, err
 		}
@@ -183,4 +183,12 @@ func FetchAuth(authD *AccessDetails) (uint64, error) {
 
 	userID, _ := strconv.ParseUint(userid, 10, 64)
 	return userID, nil
+}
+
+func DeleteAuth(jti string) (int64, error) {
+	deleted, err := client.c.Del(ctx, jti).Result()
+	if err != nil {
+		return 0, err
+	}
+	return deleted, nil
 }
