@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"fmt"
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"golangblog/database"
@@ -10,12 +12,15 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"strconv"
 )
 
 type bodylink struct {
 	Name string
 	URL  string
 }
+
+var refresh_secret = []byte(os.Getenv("REFRESH_SECRET"))
 
 // Create user
 func CreateUser(c *gin.Context) {
@@ -141,4 +146,73 @@ func RevokeToken(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, "Access token revoked")
+}
+
+func RefreshToken(c *gin.Context) {
+	mapToken := map[string]string{}
+	if err := c.ShouldBindJSON(&mapToken); err != nil {
+		c.JSON(http.StatusUnprocessableEntity, err.Error())
+		return
+	}
+	refreshToken := mapToken["refresh_token"]
+
+	// verify token
+	token, err := jwt.Parse(refreshToken, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return refresh_secret, nil
+	})
+
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, "Refresh token expired")
+		return
+	}
+
+	// check token valid
+	if _, ok := token.Claims.(jwt.Claims); !ok && !token.Valid {
+		c.JSON(http.StatusUnauthorized, err)
+		return
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if ok && token.Valid {
+		jti, ok := claims["jti"].(string)
+		if !ok {
+			c.JSON(http.StatusUnprocessableEntity, err)
+			return
+		}
+		userId, err := strconv.ParseUint(fmt.Sprintf("%.f", claims["identity"]), 10, 64)
+		if err != nil {
+			c.JSON(http.StatusUnprocessableEntity, "Error occured")
+			return
+		}
+		deleted, delErr := database.DeleteAuth(jti)
+		if delErr != nil || deleted == 0 {
+			c.JSON(http.StatusUnauthorized, "unauthorized")
+			return
+		}
+		// create new access & refresh token
+		ts, createErr := database.CreateToken(userId)
+		if createErr != nil {
+			c.JSON(http.StatusForbidden, createErr.Error())
+			return
+		}
+
+		// save token to redis
+		saveErr := database.CreateAuth(userId, ts)
+		if saveErr != nil {
+			c.JSON(http.StatusForbidden, saveErr.Error())
+			return
+		}
+
+		tokens := map[string]string{
+			"access_token":  ts.AccessToken,
+			"refresh_token": ts.RefreshToken,
+		}
+
+		c.JSON(http.StatusCreated, tokens)
+	} else {
+		c.JSON(http.StatusUnauthorized, "refresh expired")
+	}
 }

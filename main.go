@@ -22,9 +22,10 @@ func main() {
 		router.POST("/login", controllers.LoginUser)
 	}
 	router.GET("/confirm-email", controllers.VerifyAccount)
+	router.POST("/refresh", controllers.RefreshToken)
 	router.DELETE("/access-token-revoke", middleware.TokenAuthMiddleware(), controllers.RevokeToken)
 
-	router.POST("/article/create", controllers.CreateArticle)
+	router.POST("/article/create", middleware.TokenAuthMiddleware(), controllers.CreateArticle)
 
 	router.GET("/test", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
