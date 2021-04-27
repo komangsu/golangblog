@@ -10,5 +10,6 @@ require (
 	github.com/google/uuid v1.2.0
 	github.com/lib/pq v1.10.0
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
+	golang.org/x/oauth2 v0.0.0-20210413134643-5e61552d6c78
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 )
