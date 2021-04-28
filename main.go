@@ -5,7 +5,6 @@ import (
 	"github.com/gobeam/custom-validator"
 	"golangblog/controllers"
 	"golangblog/database"
-	"golangblog/libs"
 	"golangblog/middleware"
 	"net/http"
 )
@@ -26,9 +25,11 @@ func main() {
 	router.POST("/refresh", controllers.RefreshToken)
 	router.DELETE("/access-token-revoke", middleware.TokenAuthMiddleware(), controllers.RevokeToken)
 
-	router.GET("/", libs.HandleMain)
-	router.GET("/login/google", libs.HandleGoogleLogin)
-	// router.GET("/login/google/authorized", libs.HandleGoogleAuthorized)
+	router.GET("/", controllers.HandleMain)
+	router.GET("/login/google", controllers.HandleGoogleLogin)
+	router.GET("/login/google/authorized", controllers.HandleGoogleAuthorized)
+
+	router.GET("/login/facebook", controllers.HandleFacebookLogin)
 
 	router.POST("/article/create", middleware.TokenAuthMiddleware(), controllers.CreateArticle)
 	router.GET("/test", func(c *gin.Context) {

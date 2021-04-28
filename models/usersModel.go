@@ -29,6 +29,14 @@ type Claims struct {
 	jwt.StandardClaims
 }
 
+type UserGoogle struct {
+	ID            uint64 `json:"id"`
+	Email         string `json:"email"`
+	Username      string `json:"name"`
+	VerifiedEmail bool   `json:"verified_email"`
+	Avatar        string `json:"picture"`
+}
+
 // Create token
 func CreateAuthToken(user_id string) (string, error) {
 
@@ -176,4 +184,25 @@ func VerifyAccountModel(email string) error {
 	stmt.Exec(true, user_id)
 
 	return nil
+}
+
+func SaveGoogleUser(u UserGoogle) (UserGoogle, error) {
+	db := database.InitDB()
+	defer db.Close()
+
+	query := `insert into users(username,email) values($1,$2) returning id`
+
+	stmt, err := db.Prepare(query)
+	if err != nil {
+		panic(err)
+	}
+
+	var lastId uint64
+	queryErr := stmt.QueryRow(u.Username, u.Email).Scan(&lastId)
+	if queryErr != nil {
+		log.Fatal(queryErr)
+	}
+	u.ID = lastId
+
+	return u, nil
 }

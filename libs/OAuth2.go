@@ -2,8 +2,8 @@ package libs
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/facebook"
 	"golang.org/x/oauth2/google"
 	"io/ioutil"
 	"net/http"
@@ -11,61 +11,46 @@ import (
 )
 
 var (
-	googleOauthConfig *oauth2.Config
+	GoogleOauthConfig *oauth2.Config
 
-	appUrl       = os.Getenv("APP_URL") + "/login/google/authorized"
-	clientId     = os.Getenv("GOOGLE_ID")
-	clientSecret = os.Getenv("GOOGLE_SECRET")
+	googleUrl    = os.Getenv("APP_URL") + "/login/google/authorized"
+	googleId     = os.Getenv("GOOGLE_ID")
+	googleSecret = os.Getenv("GOOGLE_SECRET")
 
-	oauthStateString = "random"
+	OauthStateString = "random"
+
+	FacebookOauth  *oauth2.Config
+	facebookId     = os.Getenv("FACEBOOK_ID")
+	facebookSecret = os.Getenv("FACEBOOK_SECRET")
+	facebookUrl    = os.Getenv("APP_URL") + "/login/facebook/authorized"
 )
 
 func init() {
-	googleOauthConfig = &oauth2.Config{
-		RedirectURL:  appUrl,
-		ClientID:     clientId,
-		ClientSecret: clientSecret,
-		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email"},
-		Endpoint:     google.Endpoint,
+	GoogleOauthConfig = &oauth2.Config{
+		RedirectURL:  googleUrl,
+		ClientID:     googleId,
+		ClientSecret: googleSecret,
+		Scopes: []string{
+			"https://www.googleapis.com/auth/userinfo.email",
+			"https://www.googleapis.com/auth/userinfo.profile"},
+		Endpoint: google.Endpoint,
+	}
+
+	FacebookOauth = &oauth2.Config{
+		RedirectURL:  facebookUrl,
+		ClientID:     facebookId,
+		ClientSecret: facebookSecret,
+		Scopes:       []string{"email"},
+		Endpoint:     facebook.Endpoint,
 	}
 }
 
-func HandleMain(c *gin.Context) {
-	var htmlIndex = `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-	<meta charset="UTF-8">
-</head>
-<body>
-	<a href="/login/google">Google</a>
-</body>
-</html>
-`
-	fmt.Fprintf(c.Writer, htmlIndex)
-}
-
-func HandleGoogleLogin(c *gin.Context) {
-	url := googleOauthConfig.AuthCodeURL(oauthStateString)
-	c.Redirect(http.StatusTemporaryRedirect, url)
-}
-
-func HandleGoogleAuthorized(c *gin.Context) {
-	content, err := getUserInfo(c.Request.FormValue("state"), c.Request.FormValue("code"))
-	if err != nil {
-		fmt.Println(err.Error())
-		c.Redirect(http.StatusTemporaryRedirect, "/")
-		return
-	}
-	fmt.Fprintf(c.Writer, "Content: %s\n", content)
-}
-
-func getUserInfo(state string, code string) ([]byte, error) {
-	if state != oauthStateString {
+func UserGoogleInfo(state string, code string) ([]byte, error) {
+	if state != OauthStateString {
 		return nil, fmt.Errorf("invalid oauth state")
 	}
 
-	token, err := googleOauthConfig.Exchange(oauth2.NoContext, code)
+	token, err := GoogleOauthConfig.Exchange(oauth2.NoContext, code)
 	if err != nil {
 		return nil, fmt.Errorf("code exchange failed: %s", err.Error())
 	}
