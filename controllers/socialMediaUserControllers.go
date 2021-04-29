@@ -28,12 +28,12 @@ func HandleMain(c *gin.Context) {
 `
 	fmt.Fprintf(c.Writer, htmlIndex)
 }
-func HandleGoogleLogin(c *gin.Context) {
+func GoogleLogin(c *gin.Context) {
 	url := libs.GoogleOauthConfig.AuthCodeURL(libs.OauthStateString)
 	c.Redirect(http.StatusTemporaryRedirect, url)
 }
 
-func HandleGoogleAuthorized(c *gin.Context) {
+func GoogleAuthorized(c *gin.Context) {
 	var uGoogle models.UserGoogle
 	user, err := libs.UserGoogleInfo(c.Query("state"), c.Query("code"))
 	if err != nil {
@@ -70,7 +70,57 @@ func HandleGoogleAuthorized(c *gin.Context) {
 
 }
 
-func HandleFacebookLogin(c *gin.Context) {
+func FacebookLogin(c *gin.Context) {
 	url := libs.FacebookOauth.AuthCodeURL(libs.OauthStateString)
 	c.Redirect(http.StatusTemporaryRedirect, url)
+}
+
+func FacebookAuthorized(c *gin.Context) {
+	type dataPicture struct {
+		Url string `json:"url"`
+	}
+	type data struct {
+		Picture dataPicture `json:"data"`
+	}
+	type userFacebook struct {
+		Name   string `json:"name"`
+		Email  string `json:"email"`
+		Avatar data   `json:"picture"`
+	}
+
+	var uFacebook userFacebook
+	user, err := libs.UserFacebookInfo(c.Query("state"), c.Query("code"))
+	if err != nil {
+		fmt.Println(err.Error())
+		c.Redirect(http.StatusTemporaryRedirect, "/")
+		return
+
+	}
+	c.JSON(http.StatusOK, "successfuly login")
+
+	jsonErr := json.Unmarshal(user, &uFacebook)
+	if jsonErr != nil {
+		fmt.Println("error:", err)
+	}
+
+	// save to database
+	u, userErr := models.SaveFacebookUser(uFacebook.Name, uFacebook.Email)
+	if userErr != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed save user"})
+		return
+	}
+
+	// save to confirmation
+	confErr := models.SaveConfirmation(u.ID)
+	if confErr != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"message": "cannot insert confirmation id"})
+		return
+	}
+
+	verifErr := models.VerifyAccountModel(u.Email)
+	if verifErr != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to verifying your account"})
+		return
+	}
+
 }

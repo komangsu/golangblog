@@ -26,10 +26,11 @@ func main() {
 	router.DELETE("/access-token-revoke", middleware.TokenAuthMiddleware(), controllers.RevokeToken)
 
 	router.GET("/", controllers.HandleMain)
-	router.GET("/login/google", controllers.HandleGoogleLogin)
-	router.GET("/login/google/authorized", controllers.HandleGoogleAuthorized)
+	router.GET("/login/google", controllers.GoogleLogin)
+	router.GET("/login/google/authorized", controllers.GoogleAuthorized)
 
-	router.GET("/login/facebook", controllers.HandleFacebookLogin)
+	router.GET("/login/facebook", controllers.FacebookLogin)
+	router.GET("/login/facebook/authorized", controllers.FacebookAuthorized)
 
 	router.POST("/article/create", middleware.TokenAuthMiddleware(), controllers.CreateArticle)
 	router.GET("/test", func(c *gin.Context) {

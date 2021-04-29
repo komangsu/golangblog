@@ -37,6 +37,13 @@ type UserGoogle struct {
 	Avatar        string `json:"picture"`
 }
 
+type UserFacebook struct {
+	ID       uint64 `json:"id"`
+	Email    string `json:"email"`
+	Username string `json:"name"`
+	Avatar   string `json:"avatar"`
+}
+
 // Create token
 func CreateAuthToken(user_id string) (string, error) {
 
@@ -203,6 +210,31 @@ func SaveGoogleUser(u UserGoogle) (UserGoogle, error) {
 		log.Fatal(queryErr)
 	}
 	u.ID = lastId
+
+	return u, nil
+}
+
+func SaveFacebookUser(username, email string) (UserFacebook, error) {
+	var u UserFacebook
+
+	db := database.InitDB()
+	defer db.Close()
+
+	query := `insert into users(username,email) values($1,$2) returning id`
+
+	stmt, err := db.Prepare(query)
+	if err != nil {
+		panic(err)
+	}
+
+	var lastId uint64
+	queryErr := stmt.QueryRow(username, email).Scan(&lastId)
+	if queryErr != nil {
+		log.Fatal(queryErr)
+	}
+	u.ID = lastId
+	u.Username = username
+	u.Email = email
 
 	return u, nil
 }
