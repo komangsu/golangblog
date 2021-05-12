@@ -4,10 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"golangblog/config"
 	"golangblog/libs"
 	"golangblog/models"
 	"net/http"
 )
+
+const domain = "localhost"
 
 func HandleMain(c *gin.Context) {
 	var htmlIndex = `
@@ -35,17 +38,24 @@ func GoogleLogin(c *gin.Context) {
 
 func GoogleAuthorized(c *gin.Context) {
 	var uGoogle models.UserGoogle
+
 	user, err := libs.UserGoogleInfo(c.Query("state"), c.Query("code"))
 	if err != nil {
 		fmt.Println(err.Error())
 		c.Redirect(http.StatusTemporaryRedirect, "/")
 		return
 	}
-	c.JSON(http.StatusOK, "successfuly login")
 
 	jsonErr := json.Unmarshal(user, &uGoogle)
 	if jsonErr != nil {
 		fmt.Println("error:", err)
+	}
+
+	// check duplicate email
+	email := models.CheckEmailExists(uGoogle.Email)
+	if email != 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Email already taken."})
+		return
 	}
 
 	// save it to database
@@ -68,6 +78,22 @@ func GoogleAuthorized(c *gin.Context) {
 		return
 	}
 
+	// create token
+	token, errToken := config.CreateToken(u.ID)
+	if errToken != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "There was an error authenticating"})
+		return
+	}
+
+	// save to redis
+	setErr := config.CreateAuth(u.ID, token)
+	if setErr != nil {
+		c.JSON(http.StatusUnprocessableEntity, setErr.Error())
+	}
+
+	// set cookie
+	c.SetCookie("access_token", token.AccessToken, 0, "/login/google/authorized", domain, false, true)
+	c.SetCookie("refresh_token", token.RefreshToken, 0, "/login/google/authorized", domain, false, true)
 }
 
 func FacebookLogin(c *gin.Context) {
@@ -96,11 +122,17 @@ func FacebookAuthorized(c *gin.Context) {
 		return
 
 	}
-	c.JSON(http.StatusOK, "successfuly login")
 
 	jsonErr := json.Unmarshal(user, &uFacebook)
 	if jsonErr != nil {
 		fmt.Println("error:", err)
+	}
+
+	// check duplicate email
+	email := models.CheckEmailExists(uFacebook.Email)
+	if email != 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Email already taken."})
+		return
 	}
 
 	// save to database
@@ -122,5 +154,22 @@ func FacebookAuthorized(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to verifying your account"})
 		return
 	}
+
+	// create token
+	token, errToken := config.CreateToken(u.ID)
+	if errToken != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "There was an error authenticating"})
+		return
+	}
+
+	// save to redis
+	setErr := config.CreateAuth(u.ID, token)
+	if setErr != nil {
+		c.JSON(http.StatusUnprocessableEntity, setErr.Error())
+	}
+
+	// set cookies
+	c.SetCookie("access_token", token.AccessToken, 0, "/login/facebook/authorized", domain, false, true)
+	c.SetCookie("refresh_token", token.RefreshToken, 0, "/login/facebook/authorized", domain, false, true)
 
 }

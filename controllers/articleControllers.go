@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"github.com/gin-gonic/gin"
-	"golangblog/database"
+	"golangblog/config"
 	"golangblog/models"
 	"net/http"
 )
@@ -12,13 +12,13 @@ func CreateArticle(c *gin.Context) {
 
 	c.BindJSON(&article)
 
-	tokenAuth, err := database.ExtractTokenMetadata(c.Request)
+	tokenAuth, err := config.ExtractTokenMetadata(c.Request)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, "Unauthorized token")
 		return
 	}
 
-	userId, fetchErr := database.FetchAuth(tokenAuth)
+	userId, fetchErr := config.FetchAuth(tokenAuth)
 	if fetchErr != nil {
 		c.JSON(http.StatusUnauthorized, "Unauthorized")
 		return

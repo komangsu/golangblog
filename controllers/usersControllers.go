@@ -5,7 +5,7 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
-	"golangblog/database"
+	"golangblog/config"
 	"golangblog/libs"
 	"golangblog/models"
 	"golangblog/schemas"
@@ -94,13 +94,13 @@ func LoginUser(c *gin.Context) {
 	}
 
 	// create access token
-	token, errToken := database.CreateToken(users.ID)
+	token, errToken := config.CreateToken(users.ID)
 	if errToken != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "There was an error authenticating."})
 		return
 	}
 
-	setErr := database.CreateAuth(users.ID, token)
+	setErr := config.CreateAuth(users.ID, token)
 	if setErr != nil {
 		c.JSON(http.StatusUnprocessableEntity, setErr.Error())
 	}
@@ -134,13 +134,13 @@ func VerifyAccount(c *gin.Context) {
 }
 
 func RevokeToken(c *gin.Context) {
-	detail, err := database.ExtractTokenMetadata(c.Request)
+	detail, err := config.ExtractTokenMetadata(c.Request)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, "Unauthorized")
 		return
 	}
 
-	deleted, delErr := database.DeleteAuth(detail.AccessUuid)
+	deleted, delErr := config.DeleteAuth(detail.AccessUuid)
 	if delErr != nil || deleted == 0 {
 		c.JSON(http.StatusUnauthorized, "Unauthorized")
 		return
@@ -187,20 +187,20 @@ func RefreshToken(c *gin.Context) {
 			c.JSON(http.StatusUnprocessableEntity, "Error occured")
 			return
 		}
-		deleted, delErr := database.DeleteAuth(jti)
+		deleted, delErr := config.DeleteAuth(jti)
 		if delErr != nil || deleted == 0 {
 			c.JSON(http.StatusUnauthorized, "unauthorized")
 			return
 		}
 		// create new access & refresh token
-		ts, createErr := database.CreateToken(userId)
+		ts, createErr := config.CreateToken(userId)
 		if createErr != nil {
 			c.JSON(http.StatusForbidden, createErr.Error())
 			return
 		}
 
 		// save token to redis
-		saveErr := database.CreateAuth(userId, ts)
+		saveErr := config.CreateAuth(userId, ts)
 		if saveErr != nil {
 			c.JSON(http.StatusForbidden, saveErr.Error())
 			return
@@ -215,4 +215,9 @@ func RefreshToken(c *gin.Context) {
 	} else {
 		c.JSON(http.StatusUnauthorized, "refresh expired")
 	}
+}
+
+func GetUsers(c *gin.Context) {
+	users := models.GetUser()
+	c.JSON(http.StatusOK, users)
 }

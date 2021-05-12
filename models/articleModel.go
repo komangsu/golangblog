@@ -1,7 +1,7 @@
 package models
 
 import (
-	"golangblog/database"
+	"golangblog/config"
 	"time"
 )
 
@@ -16,7 +16,7 @@ type Article struct {
 
 func CreateArticle(title, content string, authorid uint64) error {
 
-	db := database.InitDB()
+	db := config.InitDB()
 	defer db.Close()
 
 	query := `insert into articles(title,content,author_id) values($1,$2,$3)`

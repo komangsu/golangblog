@@ -1,8 +1,7 @@
 package models
 
 import (
-	// "github.com/google/uuid"
-	"golangblog/database"
+	"golangblog/config"
 	"golangblog/libs"
 	"os"
 	"runtime"
@@ -34,7 +33,7 @@ func SendEmailConfirm(username, email string) {
 
 func SaveConfirmation(user_id uint64) error {
 
-	db := database.InitDB()
+	db := config.InitDB()
 	defer db.Close()
 
 	query := `insert into confirmation_users(user_id) values($1)`
@@ -48,7 +47,7 @@ func SaveConfirmation(user_id uint64) error {
 func FindConfirmation(user_id uint64) (Confirmation, error) {
 	var confirmation Confirmation
 
-	db := database.InitDB()
+	db := config.InitDB()
 	defer db.Close()
 
 	query := `select activated from confirmation_users where user_id = $1`

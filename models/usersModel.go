@@ -3,7 +3,7 @@ package models
 import (
 	jwt "github.com/dgrijalva/jwt-go"
 	"golang.org/x/crypto/bcrypt"
-	"golangblog/database"
+	"golangblog/config"
 	"golangblog/schemas"
 	"log"
 	"os"
@@ -42,6 +42,12 @@ type UserFacebook struct {
 	Email    string `json:"email"`
 	Username string `json:"name"`
 	Avatar   string `json:"avatar"`
+}
+
+type ListUser struct {
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 // Create token
@@ -102,7 +108,7 @@ func (u *User) Prepare() {
 func SaveUser(payload schemas.RegisterUser) (User, error) {
 	var u User
 
-	db := database.InitDB()
+	db := config.InitDB()
 	defer db.Close()
 
 	query := `insert into users(username,email,password) values($1,$2,$3) returning id`
@@ -135,7 +141,7 @@ func SaveUser(payload schemas.RegisterUser) (User, error) {
 func VerifyLogin(email, password string) (User, error) {
 	var user User
 
-	db := database.InitDB()
+	db := config.InitDB()
 	defer db.Close()
 
 	query := `select id,email,password from users where email = $1`
@@ -153,7 +159,7 @@ func CheckEmailExists(email string) int {
 
 	var counter int
 
-	db := database.InitDB()
+	db := config.InitDB()
 	defer db.Close()
 
 	query := `select count(id) from users where email = $1`
@@ -166,7 +172,7 @@ func CheckEmailExists(email string) int {
 func FindUserByEmail(email string) (uint64, error) {
 	var u User
 
-	db := database.InitDB()
+	db := config.InitDB()
 	defer db.Close()
 
 	query := `select id from users where email = $1`
@@ -177,7 +183,7 @@ func FindUserByEmail(email string) (uint64, error) {
 }
 
 func VerifyAccountModel(email string) error {
-	db := database.InitDB()
+	db := config.InitDB()
 	defer db.Close()
 
 	query := `update confirmation_users set activated = $1 where user_id = $2`
@@ -194,7 +200,7 @@ func VerifyAccountModel(email string) error {
 }
 
 func SaveGoogleUser(u UserGoogle) (UserGoogle, error) {
-	db := database.InitDB()
+	db := config.InitDB()
 	defer db.Close()
 
 	query := `insert into users(username,email) values($1,$2) returning id`
@@ -217,7 +223,7 @@ func SaveGoogleUser(u UserGoogle) (UserGoogle, error) {
 func SaveFacebookUser(username, email string) (UserFacebook, error) {
 	var u UserFacebook
 
-	db := database.InitDB()
+	db := config.InitDB()
 	defer db.Close()
 
 	query := `insert into users(username,email) values($1,$2) returning id`
@@ -237,4 +243,29 @@ func SaveFacebookUser(username, email string) (UserFacebook, error) {
 	u.Email = email
 
 	return u, nil
+}
+
+func GetUser() []ListUser {
+
+	// create list of user
+	users := []ListUser{}
+
+	db := config.InitDB()
+	defer db.Close()
+
+	query := `select username,email,password from users`
+
+	rows, _ := db.Query(query)
+	for rows.Next() {
+		var u ListUser
+
+		rows.Scan(&u.Username, &u.Email, &u.Password)
+		users = append(users, u)
+	}
+
+	return users
+}
+
+func SendPasswordReset() {
+
 }
