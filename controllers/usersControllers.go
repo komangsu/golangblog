@@ -221,3 +221,21 @@ func GetUsers(c *gin.Context) {
 	users := models.GetUser()
 	c.JSON(http.StatusOK, users)
 }
+
+func SendPasswordReset(c *gin.Context) {
+	// get email
+	var payload models.User
+
+	c.BindJSON(&payload)
+
+	// find email in database
+	email := models.CheckEmailExists(payload.Email)
+	if email == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "user with that email address not found."})
+		return
+	}
+
+	userId, _ := models.FindUserByEmail(payload.Email)
+	fmt.Println(userId)
+	// check user activated or not
+}

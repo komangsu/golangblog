@@ -265,7 +265,3 @@ func GetUser() []ListUser {
 
 	return users
 }
-
-func SendPasswordReset() {
-
-}

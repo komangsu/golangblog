@@ -16,6 +16,7 @@ func main() {
 	config.InitDB()
 	config.InitRedis()
 
+	router.GET("/", controllers.HandleMain)
 	router.Use(validator.Errors())
 	{
 		router.POST("/register", controllers.CreateUser)
@@ -25,11 +26,10 @@ func main() {
 	router.GET("/confirm-email", controllers.VerifyAccount)
 	router.POST("/refresh", controllers.RefreshToken)
 	router.DELETE("/access-token-revoke", middleware.TokenAuthMiddleware(), controllers.RevokeToken)
+	router.POST("/send-password/reset", controllers.SendPasswordReset)
 
-	router.GET("/", controllers.HandleMain)
 	router.GET("/login/google", controllers.GoogleLogin)
 	router.GET("/login/google/authorized", controllers.GoogleAuthorized)
-
 	router.GET("/login/facebook", controllers.FacebookLogin)
 	router.GET("/login/facebook/authorized", controllers.FacebookAuthorized)
 
