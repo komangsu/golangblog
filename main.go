@@ -21,12 +21,12 @@ func main() {
 	{
 		router.POST("/register", controllers.CreateUser)
 		router.POST("/login", controllers.LoginUser)
+		router.POST("/send-password/reset", controllers.SendPasswordReset)
 	}
 	router.GET("/users", controllers.GetUsers)
 	router.GET("/confirm-email", controllers.VerifyAccount)
 	router.POST("/refresh", controllers.RefreshToken)
 	router.DELETE("/access-token-revoke", middleware.TokenAuthMiddleware(), controllers.RevokeToken)
-	router.POST("/send-password/reset", controllers.SendPasswordReset)
 
 	router.GET("/login/google", controllers.GoogleLogin)
 	router.GET("/login/google/authorized", controllers.GoogleAuthorized)

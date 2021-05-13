@@ -224,9 +224,12 @@ func GetUsers(c *gin.Context) {
 
 func SendPasswordReset(c *gin.Context) {
 	// get email
-	var payload models.User
+	var payload models.SendReset
 
-	c.BindJSON(&payload)
+	if err := c.ShouldBindBodyWith(&payload, binding.JSON); err != nil {
+		_ = c.AbortWithError(422, err).SetType(gin.ErrorTypeBind)
+		return
+	}
 
 	// find email in database
 	email := models.CheckEmailExists(payload.Email)
@@ -236,6 +239,14 @@ func SendPasswordReset(c *gin.Context) {
 	}
 
 	userId, _ := models.FindUserByEmail(payload.Email)
-	fmt.Println(userId)
 	// check user activated or not
+	confirmation, _ := models.FindConfirmation(userId)
+	if !confirmation.Activated {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Please activated you're user first"})
+		return
+	}
+
+	// check email on password reset if it doesen't exist then add the email
+	reset := models.CheckEmailPasswordReset(payload.Email)
+	fmt.Println(reset)
 }
