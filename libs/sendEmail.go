@@ -39,7 +39,7 @@ func SendEmail(to string, subject string, data interface{}, templateFile string)
 
 	result, _ := ParseTemplate(templateFile, data)
 	m := gomail.NewMessage()
-	m.SetHeader("From", "Email Verification <golang@blog.com>")
+	m.SetHeader("From", "<golang@blog.com>")
 	m.SetHeader("To", to)
 	m.SetHeader("Subject", subject)
 	m.SetBody("text/html", result)
@@ -63,11 +63,25 @@ func SendEmailVerification(to string, data interface{}) {
 	var err error
 
 	template := "./templates/email/email-confirm.html"
-	subject := "test email verification"
+	subject := "Email Verification"
 
 	err = SendEmail(to, subject, data, template)
 	if err == nil {
 		fmt.Println("send email '" + subject + "'success")
+	} else {
+		fmt.Println(err)
+	}
+}
+
+func SendEmailPasswordReset(to string, data interface{}) {
+	var err error
+
+	template := "./template/email/EmailResetPassword.html"
+	subject := "Reset Password"
+
+	err = SendEmail(to, subject, data, template)
+	if err == nil {
+		fmt.Println("send '" + subject + "'success")
 	} else {
 		fmt.Println(err)
 	}

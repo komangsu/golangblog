@@ -20,6 +20,10 @@ type bodylink struct {
 	URL  string
 }
 
+type emailreset struct {
+	URL string
+}
+
 var refresh_secret = []byte(os.Getenv("REFRESH_SECRET"))
 
 // Create user
@@ -247,6 +251,19 @@ func SendPasswordReset(c *gin.Context) {
 	}
 
 	// check email on password reset if it doesen't exist then add the email
-	reset := models.CheckEmailPasswordReset(payload.Email)
-	fmt.Println(reset)
+	pass_reset := models.CheckEmailPasswordReset(payload.Email)
+	if pass_reset == 0 {
+		models.SavePasswordReset(payload.Email)
+		// send email
+		link := os.Getenv("APP_URL") + "/test"
+		templateData := emailreset{
+			URL: link,
+		}
+
+		runtime.GOMAXPROCS(1)
+		go libs.SendEmailPasswordReset(payload.Email, templateData)
+		c.JSON(http.StatusOK, gin.H{"message": "We have e-mailed your password reset link!"})
+	} else {
+		c.JSON(http.StatusOK, gin.H{"message": "already saved"})
+	}
 }
