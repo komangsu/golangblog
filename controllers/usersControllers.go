@@ -13,6 +13,7 @@ import (
 	"os"
 	"runtime"
 	"strconv"
+	"time"
 )
 
 type bodylink struct {
@@ -252,6 +253,13 @@ func SendPasswordReset(c *gin.Context) {
 
 	// check email on password reset if it doesen't exist then add the email
 	pass_reset := models.CheckEmailPasswordReset(payload.Email)
+
+	// check resend expired
+	res_expired := models.GetResendExpired(payload.Email)
+
+	// get time now
+	t := time.Now().Unix()
+
 	if pass_reset == 0 {
 		models.SavePasswordReset(payload.Email)
 		// send email
@@ -262,8 +270,13 @@ func SendPasswordReset(c *gin.Context) {
 
 		runtime.GOMAXPROCS(1)
 		go libs.SendEmailPasswordReset(payload.Email, templateData)
+
 		c.JSON(http.StatusOK, gin.H{"message": "We have e-mailed your password reset link!"})
 	} else {
 		c.JSON(http.StatusOK, gin.H{"message": "already saved"})
+	}
+
+	if uint64(t) > res_expired.ResendExpired {
+		models.ChangeResendExpired(payload.Email)
 	}
 }

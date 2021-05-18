@@ -269,16 +269,3 @@ func GetUser() []ListUser {
 
 	return users
 }
-
-func CheckEmailPasswordReset(email string) int {
-	var counter int
-
-	db := config.InitDB()
-	defer db.Close()
-
-	query := `select count(id) from password_resets where email = $1`
-
-	db.QueryRow(query, email).Scan(&counter)
-
-	return counter
-}

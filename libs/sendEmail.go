@@ -76,7 +76,7 @@ func SendEmailVerification(to string, data interface{}) {
 func SendEmailPasswordReset(to string, data interface{}) {
 	var err error
 
-	template := "./template/email/EmailResetPassword.html"
+	template := "./templates/email/EmailResetPassword.html"
 	subject := "Reset Password"
 
 	err = SendEmail(to, subject, data, template)

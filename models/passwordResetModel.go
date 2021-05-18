@@ -25,3 +25,58 @@ func SavePasswordReset(email string) {
 
 	return
 }
+
+func CheckEmailPasswordReset(email string) int {
+	var counter int
+
+	db := config.InitDB()
+	defer db.Close()
+
+	query := `select count(id) from password_resets where email = $1`
+
+	db.QueryRow(query, email).Scan(&counter)
+
+	return counter
+}
+
+func CheckResendExpired(email string) int {
+	var counter int
+
+	db := config.InitDB()
+	defer db.Close()
+
+	query := `select count(resend_expired) from password_resets where email = $1`
+
+	db.QueryRow(query, email).Scan(&counter)
+
+	return counter
+}
+
+func GetResendExpired(email string) PasswordReset {
+	var passwordreset PasswordReset
+
+	db := config.InitDB()
+	defer db.Close()
+
+	query := `select resend_expired from password_resets where email = $1`
+
+	row := db.QueryRow(query, email)
+	row.Scan(&passwordreset.ResendExpired)
+
+	return passwordreset
+}
+
+func ChangeResendExpired(email string) {
+	db := config.InitDB()
+	defer db.Close()
+
+	query := `update password_resets set resend_expired = $1 where email = $2`
+
+	stmt, _ := db.Prepare(query)
+
+	resend := GetResendExpired(email)
+	changeResend := resend.ResendExpired + 300
+	stmt.Exec(changeResend, email)
+
+	return
+}
